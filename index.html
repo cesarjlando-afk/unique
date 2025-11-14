@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Rondas Preventivas</title>
+  <meta name="theme-color" content="#007bff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Checklist">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png" type="image/png">
+  <style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 5vw;
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    background-color: #f9f9f9;
+    margin: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 95vw;
+    margin: auto;
+    padding: 5vw;
+  }
+
+  #login, #checklistPage {
+    display: none;
+  }
+
+  #login.visible, #checklistPage.visible {
+    display: block;
+  }
+
+  .item {
+    margin-bottom: 6vw;
+    border: 1px solid #ccc;
+    padding: 4vw;
+    border-radius: 5px;
+    background-color: #fff;
+  }
+
+  .controles, .avaliacao, .descricaoExtra {
+    display: none;
+    margin-top: 10px;
+  }
+
+  .item.checked .controles {
+    display: block;
+  }
+
+  canvas {
+    width: 100%;
+    max-width: 300px;
+    margin-top: 10px;
+    display: none;
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+
+  button {
+    margin-top: 10px;
+    padding: 12px 24px;
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  .hora-captura {
+    margin-top: 5px;
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  #dataHoraAtual {
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+
+  #blocoCamera {
+    margin-top: 20px;
+    display: none;
+    text-align: center;
+  }
+
+  #videoUnico {
+    max-height: 250px;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    body {
+      font-size: 1.1rem;
+    }
+
+    .container {
+      padding: 6vw;
+    }
+
+    button {
+      font-size: 1.1rem;
+    }
+  }
+  
+    .cabecario {
+  background-color: #f0f4f8;
+  color: #333;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 20px;
+  font-family: 'Arial', sans-serif;
+}
+
+.cabecario h1 {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  margin: 0;
+}
+
+.cabecario h1 span {
+  display: block;
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: normal;
+  margin-top: 5px;
+}
+
+.cabecario p {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  margin-top: 10px;
+}
+
+</style>
+</head>
+<body>
+  <header class="cabecario">
+  <h1>Hotel Unique<span></span></h1>
+  <p>AV. Brigadeiro Luis Antonio, 4700 - Jardim Paulista, São Paulo - SP</p>
+</header>
+<div id="login" class="visible">
+  <h2>Login de Acesso</h2>
+  <label>Usuário:</label><br>
+  <input type="text" id="usuario"><br>
+  <label>Senha:</label><br>
+  <input type="password" id="senha"><br>
+  <button onclick="verificarLogin()">Entrar</button>
+  <div id="erro" style="color: red; margin-top: 10px;"></div>
+</div>
+
+<div id="checklistPage">
+  <h2>Ronda Preventiva Hotel Unique</h2>
+  <div id="dataHoraAtual"></div>
+  <button onclick="iniciarRonda()">🚀 Iniciar Ronda</button>
+
+  <div id="checklist">
+    <!-- ✅ Itens 1 a 5 -->
+    <div class="item" data-id="1">
+      <label><input type="checkbox" class="check" onchange="toggleItem(this)"> Piso Ártico</label>
+      <div class="controles">
+        <button onclick="abrirCamera(1)">📸 Abrir Câmera</button>
+        <canvas id="canvas1"></canvas>
+        <div class="hora-captura"></div>
+        <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+      </div>
+      <div class="avaliacao">
+       <button id="btnConforme1" onclick="avaliarItem(this, true)">✅ Conforme</button>
+        <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+      </div>
+      <div class="descricaoExtra">
+        <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+        <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+      </div>
+    </div>
+
+    <div class="item" data-id="2">
+      <label><input type="checkbox" class="check" onchange="toggleItem(this)"> Geradores</label>
+      <div class="controles">
+        <button onclick="abrirCamera(2)">📸 Abrir Câmera</button>
+        <canvas id="canvas2"></canvas>
+        <div class="hora-captura"></div>
+        <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+      </div>
+      <div class="avaliacao">
+       <button id="btnConforme2" onclick="avaliarItem(this, true)">✅ Conforme</button> <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+      </div>
+      <div class="descricaoExtra">
+        <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+        <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+      </div>
+    </div>
+
+    <div class="item" data-id="3">
+      <label><input type="checkbox" class="check" onchange="toggleItem(this)"> CM Cobertura</label>
+      <div class="controles">
+        <button onclick="abrirCamera(3)">📸 Abrir Câmera</button>
+        <canvas id="canvas3"></canvas>
+        <div class="hora-captura"></div>
+        <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+      </div>
+      <div class="avaliacao">
+        <button id="btnConforme3" onclick="avaliarItem(this, true)">✅ Conforme</button>
+        <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+      </div>
+      <div class="descricaoExtra">
+        <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+        <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+      </div>
+    </div>
+
+    <div class="item" data-id="4">
+      <label><input type="checkbox" class="check" onchange="toggleItem(this)"> 2° Subsolo</label>
+      <div class="controles">
+        <button onclick="abrirCamera(4)">📸 Abrir Câmera</button>
+        <canvas id="canvas4"></canvas>
+        <div class="hora-captura"></div>
+        <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+      </div>
+      <div class="avaliacao">
+        <button id="btnConforme4" onclick="avaliarItem(this, true)">✅ Conforme</button>
+        <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+      </div>
+      <div class="descricaoExtra">
+        <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+        <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+      </div>
+    </div>
+
+    <div class="item" data-id="5">
+      <label><input type="checkbox" class="check" onchange="toggleItem(this)"> Caldeira</label>
+      <div class="controles">
+        <button onclick="abrirCamera(5)">📸 Abrir Câmera</button>
+        <canvas id="canvas5"></canvas>
+        <div class="hora-captura"></div>
+        <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+      </div>
+      <div class="avaliacao">
+        <button id="btnConforme5" onclick="avaliarItem(this, true)">✅ Conforme</button>
+        <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+      </div>
+      <div class="descricaoExtra">
+        <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+        <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+      </div>
+    </div>
+    <!-- Item 6: CAG 1 -->
+<div class="item" data-id="6">
+  <label><input type="checkbox" class="check" onchange="toggleItem(this)"> Casa De Bomba de Incêndio</label>
+  <div class="controles">
+    <button onclick="abrirCamera(6)">📸 Abrir Câmera</button>
+    <canvas id="canvas6"></canvas>
+    <div class="hora-captura"></div>
+    <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+  </div>
+  <div class="avaliacao">
+    <button id="btnConforme6" onclick="avaliarItem(this, true)">✅ Conforme</button>
+    <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+  </div>
+  <div class="descricaoExtra">
+    <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+    <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+  </div>
+</div>
+
+<!-- Repita a estrutura acima para os itens 7 a 17, alterando o nome e o número do ID/canvas -->
+<!-- Aqui estão os nomes para cada item: -->
+<!-- 7: 2° Subsolo -->
+<div class="item" data-id="7">
+  <label><input type="checkbox" class="check" onchange="toggleItem(this)">CAG</label>
+  <div class="controles">
+    <button onclick="abrirCamera(7)">📸 Abrir Câmera</button>
+    <canvas id="canvas7"></canvas>
+    <div class="hora-captura"></div>
+    <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+  </div>
+  <div class="avaliacao">
+    <button id="btnConforme7" onclick="avaliarItem(this, true)">✅ Conforme</button>
+    <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+  </div>
+  <div class="descricaoExtra">
+    <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+    <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+  </div>
+</div>
+
+
+<!-- Bloco único de câmera -->
+<div id="blocoCamera">
+  <video id="videoUnico" autoplay playsinline></video><br>
+  <button onclick="capturarFotoUnica()">✅ Capturar Foto</button>
+</div>
+
+<button id="btnPDF" onclick="verificarAntesDeGerar()">📄 Gerar PDF</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+let streamAtual = null;
+let usuarioAtual = "";
+let rondaIniciada = false;
+let itemAtivo = null;
+if (localStorage.getItem("rondaIniciada") === "true") {
+  rondaIniciada = true;
+}
+
+
+const usuariosPermitidos = {
+  "Alessandro Caiana": "02476",
+  "Cesar Lando": "25242"
+};
+
+function verificarLogin() {
+  const usuario = document.getElementById("usuario").value.trim();
+  const senha = document.getElementById("senha").value.trim();
+  const erro = document.getElementById("erro");
+
+  if (usuariosPermitidos[usuario] === senha) {
+    usuarioAtual = usuario;
+    document.getElementById("login").classList.remove("visible");
+    document.getElementById("checklistPage").classList.add("visible");
+    restaurarEstado();
+  } else {
+    erro.innerText = "Usuário ou senha inválidos.";
+  }
+}
+
+function toggleItem(checkbox) {
+  const item = checkbox.closest('.item');
+  if (!rondaIniciada) {
+    checkbox.checked = false;
+    alert("⚠️ Inicie a ronda antes de verificar os itens!");
+    return;
+  }
+  if (checkbox.checked) {
+    item.classList.add('checked');
+    item.querySelector('.controles').style.display = "block";
+  } else {
+    item.classList.remove('checked');
+    item.querySelector('.controles').style.display = "none";
+    item.querySelector('.avaliacao').style.display = "none";
+    item.querySelector('.descricaoExtra').style.display = "none";
+    item.querySelector('canvas').style.display = "none";
+    item.removeAttribute("data-foto");
+  }
+  verificarChecklistCompleto();
+  salvarEstado();
+}
+
+function abrirCamera(id) {
+  itemAtivo = id;
+  const video = document.getElementById("videoUnico");
+  const blocoCamera = document.getElementById("blocoCamera");
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
+    .then(stream => {
+      video.srcObject = stream;
+      video.style.display = "block";
+      blocoCamera.style.display = "block";
+      streamAtual = stream;
+      setTimeout(() => {
+        blocoCamera.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    })
+    .catch(err => {
+      alert("Erro ao acessar a câmera: " + err.message);
+    });
+}
+
+function capturarFotoUnica() {
+  if (!itemAtivo) return;
+
+  const video = document.getElementById("videoUnico");
+  const canvas = document.getElementById(`canvas${itemAtivo}`);
+  const ctx = canvas.getContext('2d');
+  canvas.style.display = "block";
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // 🔹 Salva a imagem capturada no localStorage
+  const imgData = canvas.toDataURL("image/jpeg", 0.8);
+  localStorage.setItem(`foto_${itemAtivo}`, imgData);
+
+  const hora = new Date().toLocaleString();
+  const item = document.querySelector(`.item[data-id="${itemAtivo}"]`);
+  item.querySelector('.hora-captura').innerText = `Capturado em: ${hora}`;
+  item.setAttribute("data-foto", "true");
+
+  // 🔹 Fecha a câmera e esconde o vídeo
+  if (streamAtual) {
+    streamAtual.getTracks().forEach(track => track.stop());
+    streamAtual = null;
+    video.style.display = "none";
+    document.getElementById("blocoCamera").style.display = "none";
+  }
+
+  // 🔹 Rola a tela de volta para o item correspondente
+  item.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // 🔹 Ajusta visibilidade dos botões e campos
+  item.querySelector('.controles').style.display = "none";
+  item.querySelector('.avaliacao').style.display = "block";
+  item.querySelector('input[type="text"]').style.display = "none";
+
+  verificarChecklistCompleto();
+}
+
+
+
+function validarDescricao(input) {
+  const btnSalvar = input.nextElementSibling;
+  btnSalvar.disabled = input.value.trim() === "";
+}
+
+function salvarNaoConforme(btn) {
+  const item = btn.closest('.item');
+  const extraInput = item.querySelector('.descricaoExtraInput');
+  const descricaoInput = item.querySelector('input[type="text"]');
+  descricaoInput.value = extraInput.value.trim();
+
+  salvarEstado();
+  item.classList.remove('checked');
+  item.querySelector('.descricaoExtra').style.display = "none";
+  item.querySelector('.controles').style.display = "block";
+  descricaoInput.style.display = "block";
+}
+
+function salvarNaoConforme(btn) {
+  const item = btn.closest('.item');
+  const extraInput = item.querySelector('.descricaoExtraInput');
+  const descricaoInput = item.querySelector('input[type="text"]');
+  descricaoInput.value = extraInput.value.trim();
+
+  salvarEstado();
+  item.classList.remove('checked');
+  item.querySelector('.descricaoExtra').style.display = "none";
+  item.querySelector('.controles').style.display = "block";
+  descricaoInput.style.display = "block";
+}
+
+function verificarChecklistCompleto() {
+  const itens = document.querySelectorAll('.item');
+  const todosVerificados = Array.from(itens).every(item => item.querySelector('.check').checked);
+  const todasFotosCapturadas = Array.from(itens).every(item => item.getAttribute("data-foto") === "true");
+
+  const btnPDF = document.getElementById("btnPDF");
+  btnPDF.disabled = !(todosVerificados && todasFotosCapturadas);
+}
+// 🔹 Mantém o botão SEMPRE ativo
+function verificarChecklistCompleto() {
+  const btnPDF = document.getElementById("btnPDF");
+  btnPDF.disabled = false; // sempre habilitado
+}
+
+// 🔹 Só gera PDF se todos os itens estiverem verificados
+function verificarAntesDeGerar() {
+  const itens = document.querySelectorAll('.item');
+  let todosValidos = true;
+
+  itens.forEach((item) => {
+    const checkbox = item.querySelector('.check');
+    const descricao = item.querySelector('.controles input[type="text"]');
+    const canvas = item.querySelector('canvas');
+
+    const marcado = checkbox?.checked;
+    const texto = descricao?.value.trim();
+    const temFoto = canvas && canvas.width > 0;
+
+    if (!marcado || !texto || !temFoto) {
+      todosValidos = false;
+      item.style.border = "2px solid red";
+
+      // Remove o border vermelho após 8 segundos
+      setTimeout(() => {
+        item.style.border = "1px solid #ccc";
+      }, 8000);
+
+    } else {
+      item.style.border = "1px solid #ccc";
+    }
+  });
+
+  if (!todosValidos) {
+    alert("⚠️ Para gerar o PDF, todos os itens precisam estar verificados, com descrição e foto.");
+    return;
+  }
+
+  // Se passou na validação, chama a função para gerar o PDF
+  gerarPDF();
+}
+
+
+function gerarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p", "mm", "a4");
+
+  // 🔹 CABEÇÁRIO CENTRALIZADO NO PDF
+  doc.setFontSize(18);
+  doc.text("Hotel Unique", 105, 15, { align: "center" });
+
+  doc.setFontSize(12);
+  doc.text("AV. Brigadeiro Luis Antonio, 4700 - Jardim Paulista, São Paulo - SP",
+           105, 22, { align: "center" });
+
+  doc.line(10, 28, 200, 28); // linha separadora
+
+  // 🔹 TÍTULO DO RELATÓRIO
+  doc.setFontSize(16);
+  doc.text("Relatório de Ronda Preventiva", 105, 38, { align: "center" });
+
+  doc.setFontSize(11);
+  doc.text(`Responsável: ${usuarioAtual}`, 10, 50);
+  doc.text(`Data: ${new Date().toLocaleString()}`, 10, 56);
+
+  let y = 70;
+
+  document.querySelectorAll('.item').forEach((item, i) => {
+    const nome = item.querySelector('label').innerText.trim();
+    const descricao = item.querySelector('input[type="text"]').value.trim();
+    const canvas = item.querySelector('canvas');
+    const hora = item.querySelector('.hora-captura')?.innerText || "";
+
+    doc.setFontSize(12);
+    doc.text(`${i + 1}. ${nome}`, 10, y);
+    y += 6;
+
+    if (hora) {
+      doc.setFontSize(10);
+      doc.text(hora, 10, y);
+      y += 6;
+    }
+
+    doc.setFontSize(11);
+    doc.text(`Descrição: ${descricao}`, 10, y);
+    y += 8;
+
+    // 🔹 INSERIR IMAGEM SEM CORTAR, AJUSTE AUTOMÁTICO
+    if (canvas && canvas.width > 0) {
+      const imgData = canvas.toDataURL("image/jpeg", 0.85);
+
+      // Tamanho máximo permitido
+      const maxW = 90;
+      const maxH = 65;
+
+      const ratio = canvas.width / canvas.height;
+      let w = maxW;
+      let h = w / ratio;
+
+      if (h > maxH) {
+        h = maxH;
+        w = h * ratio;
+      }
+
+      // Se faltar espaço na página
+      if (y + h > 280) {
+        doc.addPage();
+        y = 20;
+      }
+
+      doc.addImage(imgData, "JPEG", 10, y, w, h);
+      y += h + 10;
+    }
+
+    if (y > 280) {
+      doc.addPage();
+      y = 20;
+    }
+  });
+
+  const nomeArquivo = `Ronda_${usuarioAtual}_${new Date().toLocaleDateString()}_${new Date().getTime()}.pdf`;
+  doc.save(nomeArquivo);
+
+  alert("✅ PDF gerado com sucesso!");
+}
+
+
+function iniciarRonda() {
+  if (confirm("Tem certeza que deseja iniciar uma nova ronda?.")) {
+    localStorage.removeItem(`checklist_${usuarioAtual}`);
+    rondaIniciada = true;
+    localStorage.setItem("rondaIniciada", "true");
+
+
+    document.querySelectorAll('.item').forEach(item => {
+      item.classList.remove('checked');
+      item.querySelector('.check').checked = false;
+      item.querySelector('input[type="text"]').value = "";
+      item.querySelector('.hora-captura').innerText = "";
+      item.querySelector('canvas').style.display = "none";
+      item.querySelector('.controles').style.display = "none";
+      item.querySelector('.avaliacao').style.display = "none";
+      item.querySelector('.descricaoExtra').style.display = "none";
+      item.querySelector('input[type="text"]').style.display = "block";
+      item.removeAttribute("data-foto");
+    });
+
+    alert("✅ Ronda iniciada com sucesso!");
+    verificarChecklistCompleto();
+  }
+}
+
+function salvarEstado() {
+  const itens = document.querySelectorAll('.item');
+  const dados = [];
+
+  itens.forEach((item) => {
+    const check = item.querySelector('.check').checked;
+    const descricao = item.querySelector('input[type="text"]').value;
+    const hora = item.querySelector('.hora-captura')?.innerText || "";
+    const foto = item.getAttribute("data-foto") === "true";
+
+    dados.push({ check, descricao, hora, foto });
+  });
+
+  localStorage.setItem(`checklist_${usuarioAtual}`, JSON.stringify(dados));
+}
+
+function restaurarEstado() {
+  const dados = JSON.parse(localStorage.getItem(`checklist_${usuarioAtual}`) || '[]');
+  const itens = document.querySelectorAll('.item');
+
+  dados.forEach((dado, index) => {
+    const item = itens[index];
+    if (!item) return;
+
+    item.querySelector('.check').checked = dado.check;
+    item.querySelector('input[type="text"]').value = dado.descricao;
+    item.querySelector('.hora-captura').innerText = dado.hora || "";
+
+    if (dado.check) item.classList.add('checked');
+    if (dado.foto) item.setAttribute("data-foto", "true");
+  });
+
+  verificarChecklistCompleto();
+}
+
+function avaliarItem(btn, conforme) {
+  const item = btn.closest('.item');
+  const descricaoInput = item.querySelector('input[type="text"]');
+
+  if (conforme) {
+    descricaoInput.value = "Conforme";
+    salvarEstado();
+    item.classList.remove('checked');
+    item.querySelector('.avaliacao').style.display = "none";
+    item.querySelector('.controles').style.display = "block";
+    descricaoInput.style.display = "block";
+  } else {
+    item.querySelector('.avaliacao').style.display = "none";
+    item.querySelector('.descricaoExtra').style.display = "block";
+  }
+}
+function atualizarDataHora() {
+  const agora = new Date();
+  const formatado = agora.toLocaleString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+  document.getElementById("dataHoraAtual").innerText = `🕒 ${formatado}`;
+}
+
+setInterval(atualizarDataHora, 1000);
+
+
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("✅ Service Worker registrado com sucesso!"))
+      .catch(err => console.log("❌ Erro ao registrar Service Worker:", err));
+  }
+
+window.addEventListener("load", () => {
+  document.querySelectorAll('.item').forEach((item) => {
+    const id = item.getAttribute("data-id");
+    const canvas = document.getElementById(`canvas${id}`);
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const savedImage = localStorage.getItem(`foto_${id}`);
+
+    if (savedImage) {
+      const img = new Image();
+      img.onload = () => {
+        canvas.style.display = "block";
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        item.setAttribute("data-foto", "true");
+      };
+      img.src = savedImage;
+    }
+  });
+});
+
+</script>
+</body>
+</html>
