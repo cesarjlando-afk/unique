@@ -226,7 +226,7 @@
     </div>
 
     <div class="item" data-id="4">
-      <label><input type="checkbox" class="check" onchange="toggleItem(this)"> 2° Subsolo</label>
+      <label><input type="checkbox" class="check" onchange="toggleItem(this)"> Fitness</label>
       <div class="controles">
         <button onclick="abrirCamera(4)">📸 Abrir Câmera</button>
         <canvas id="canvas4"></canvas>
@@ -279,11 +279,11 @@
   </div>
 </div>
 
-<!-- Repita a estrutura acima para os itens 7 a 17, alterando o nome e o número do ID/canvas -->
+<!-- Repita a estrutura acima para os itens 7 a 18, alterando o nome e o número do ID/canvas -->
 <!-- Aqui estão os nomes para cada item: -->
 <!-- 7: 2° Subsolo -->
 <div class="item" data-id="7">
-  <label><input type="checkbox" class="check" onchange="toggleItem(this)">CAG</label>
+  <label><input type="checkbox" class="check" onchange="toggleItem(this)">Cozinha</label>
   <div class="controles">
     <button onclick="abrirCamera(7)">📸 Abrir Câmera</button>
     <canvas id="canvas7"></canvas>
@@ -300,6 +300,23 @@
   </div>
 </div>
 
+<div class="item" data-id="8">
+  <label><input type="checkbox" class="check" onchange="toggleItem(this)">Casa (RH)</label>
+  <div class="controles">
+    <button onclick="abrirCamera(8)">📸 Abrir Câmera</button>
+    <canvas id="canvas8"></canvas>
+    <div class="hora-captura"></div>
+    <input type="text" placeholder="Descrição..." oninput="salvarEstado()">
+  </div>
+  <div class="avaliacao">
+    <button id="btnConforme7" onclick="avaliarItem(this, true)">✅ Conforme</button>
+    <button onclick="avaliarItem(this, false)">❌ Não Conforme</button>
+  </div>
+  <div class="descricaoExtra">
+    <input type="text" class="descricaoExtraInput" placeholder="Descreva o problema..." oninput="validarDescricao(this)">
+    <button disabled onclick="salvarNaoConforme(this)">💾 Salvar</button>
+  </div>
+</div>
 
 <!-- Bloco único de câmera -->
 <div id="blocoCamera">
@@ -322,7 +339,8 @@ if (localStorage.getItem("rondaIniciada") === "true") {
 
 const usuariosPermitidos = {
   "Alessandro Caiana": "02476",
-  "Cesar Lando": "25242"
+  "Cesar Lando": "25242",
+  "Walter Silva": "02774" // <-- novo usuário adicionado
 };
 
 function verificarLogin() {
@@ -389,9 +407,38 @@ function capturarFotoUnica() {
   const canvas = document.getElementById(`canvas${itemAtivo}`);
   const ctx = canvas.getContext('2d');
   canvas.style.display = "block";
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // Original vídeo dimensions
+  let width = video.videoWidth;
+  let height = video.videoHeight;
+
+  // Detecta orientação da foto
+  const isVertical = height > width;
+
+  // Limites ideais para o redimensionamento
+  let maxW, maxH;
+  if (isVertical) {
+    maxW = 800;  // pixels largura máxima vertical
+    maxH = 1200; // pixels altura máxima vertical
+  } else {
+    maxW = 1200; // pixels largura máxima horizontal
+    maxH = 800;  // pixels altura máxima horizontal
+  }
+
+  // Redimensiona garantindo a proporção
+  if (width > maxW) {
+    height = Math.round(height * (maxW / width));
+    width = maxW;
+  }
+  if (height > maxH) {
+    width = Math.round(width * (maxH / height));
+    height = maxH;
+  }
+
+  // Define o novo tamanho do canvas
+  canvas.width = width;
+  canvas.height = height;
+  ctx.drawImage(video, 0, 0, width, height);
 
   // 🔹 Salva a imagem capturada no localStorage
   const imgData = canvas.toDataURL("image/jpeg", 0.8);
@@ -420,7 +467,6 @@ function capturarFotoUnica() {
 
   verificarChecklistCompleto();
 }
-
 
 
 function validarDescricao(input) {
@@ -509,24 +555,27 @@ function verificarAntesDeGerar() {
 function gerarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-  // 🔹 CABEÇÁRIO CENTRALIZADO NO PDF
+  // 🔹 CABEÇÁRIO CENTRALIZADO
   doc.setFontSize(18);
-  doc.text("Hotel Unique", 105, 15, { align: "center" });
+  doc.text("Hotel Unique", pageWidth / 2, 15, { align: "center" });
 
   doc.setFontSize(12);
-  doc.text("AV. Brigadeiro Luis Antonio, 4700 - Jardim Paulista, São Paulo - SP",
-           105, 22, { align: "center" });
+  doc.text(
+    "AV. Brigadeiro Luis Antonio, 4700 - Jardim Paulista, São Paulo - SP",
+    pageWidth / 2, 22, { align: "center" }
+  );
 
-  doc.line(10, 28, 200, 28); // linha separadora
+  doc.line(10, 28, 200, 28);
 
-  // 🔹 TÍTULO DO RELATÓRIO
+  // 🔹 TÍTULO CENTRALIZADO
   doc.setFontSize(16);
-  doc.text("Relatório de Ronda Preventiva", 105, 38, { align: "center" });
+  doc.text("Relatório de Ronda Preventiva", pageWidth / 2, 38, { align: "center" });
 
   doc.setFontSize(11);
-  doc.text(`Responsável: ${usuarioAtual}`, 10, 50);
-  doc.text(`Data: ${new Date().toLocaleString()}`, 10, 56);
+  doc.text(`Responsável: ${usuarioAtual}`, pageWidth / 2, 50, { align: "center" });
+  doc.text(`Data: ${new Date().toLocaleString()}`, pageWidth / 2, 56, { align: "center" });
 
   let y = 70;
 
@@ -535,28 +584,53 @@ function gerarPDF() {
     const descricao = item.querySelector('input[type="text"]').value.trim();
     const canvas = item.querySelector('canvas');
     const hora = item.querySelector('.hora-captura')?.innerText || "";
+    const itemId = item.getAttribute('data-id');
 
+    // 🔹 Nome do item centralizado
     doc.setFontSize(12);
-    doc.text(`${i + 1}. ${nome}`, 10, y);
+    doc.text(`${i + 1}. ${nome}`, pageWidth / 2, y, { align: "center" });
     y += 6;
 
+    // 🔹 Justificativa do item 16 (Casa de Maquinas Zona Baixa), centralizada
+    if (itemId == "16") {
+      const justificativa = localStorage.getItem("justifica_16");
+      if (justificativa) {
+        doc.setFontSize(10);
+        const split = doc.splitTextToSize("Justificativa: " + justificativa, pageWidth * 0.85);
+        split.forEach((line, idx) =>
+          doc.text(line, pageWidth / 2, y + idx * 6, { align: "center" })
+        );
+        y += split.length * 6 + 2;
+      }
+    }
+
+    // 🔹 Horário de captura centralizado
     if (hora) {
       doc.setFontSize(10);
-      doc.text(hora, 10, y);
+      doc.text(hora, pageWidth / 2, y, { align: "center" });
       y += 6;
     }
 
+    // 🔹 Descrição centralizada
     doc.setFontSize(11);
-    doc.text(`Descrição: ${descricao}`, 10, y);
+    doc.text(`Descrição: ${descricao}`, pageWidth / 2, y, { align: "center" });
     y += 8;
 
-    // 🔹 INSERIR IMAGEM SEM CORTAR, AJUSTE AUTOMÁTICO
+    // 🔹 Imagem centralizada, auto-ajuste vertical/horizontal
     if (canvas && canvas.width > 0) {
       const imgData = canvas.toDataURL("image/jpeg", 0.85);
 
-      // Tamanho máximo permitido
-      const maxW = 90;
-      const maxH = 65;
+      // Detecta orientação da imagem
+      const isVertical = canvas.height > canvas.width;
+      let maxW, maxH;
+
+      if (isVertical) {
+        maxW = 80;  // largura menor para vertical
+        maxH = 120; // altura maior para vertical
+      } else {
+        maxW = 120; // largura maior para horizontal
+        maxH = 80;  // altura menor para horizontal
+      }
 
       const ratio = canvas.width / canvas.height;
       let w = maxW;
@@ -567,13 +641,15 @@ function gerarPDF() {
         w = h * ratio;
       }
 
-      // Se faltar espaço na página
+      // Centraliza horizontalmente
+      const imgX = (pageWidth - w) / 2;
+
       if (y + h > 280) {
         doc.addPage();
         y = 20;
       }
 
-      doc.addImage(imgData, "JPEG", 10, y, w, h);
+      doc.addImage(imgData, "JPEG", imgX, y, w, h);
       y += h + 10;
     }
 
@@ -582,6 +658,11 @@ function gerarPDF() {
       y = 20;
     }
   });
+
+  // Rodapé centralizado
+  doc.setFontSize(10);
+  const rodape = `Relatório gerado em: ${new Date().toLocaleString()}`;
+  doc.text(rodape, pageWidth / 2, 290, { align: "center" });
 
   const nomeArquivo = `Ronda_${usuarioAtual}_${new Date().toLocaleDateString()}_${new Date().getTime()}.pdf`;
   doc.save(nomeArquivo);
