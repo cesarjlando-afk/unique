@@ -591,7 +591,7 @@ function gerarPDF() {
     doc.text(`${i + 1}. ${nome}`, pageWidth / 2, y, { align: "center" });
     y += 6;
 
-    // 🔹 Justificativa do item 16 (Casa de Maquinas Zona Baixa), centralizada
+    // 🔹 Justificativa do item 16
     if (itemId == "16") {
       const justificativa = localStorage.getItem("justifica_16");
       if (justificativa) {
@@ -604,32 +604,41 @@ function gerarPDF() {
       }
     }
 
-    // 🔹 Horário de captura centralizado
+    // 🔹 Horário de captura
     if (hora) {
       doc.setFontSize(10);
       doc.text(hora, pageWidth / 2, y, { align: "center" });
       y += 6;
     }
 
-    // 🔹 Descrição centralizada
+    // 🔹 DESCRIÇÃO COM QUEBRA DE LINHA
     doc.setFontSize(11);
-    doc.text(`Descrição: ${descricao}`, pageWidth / 2, y, { align: "center" });
-    y += 8;
 
-    // 🔹 Imagem centralizada, auto-ajuste vertical/horizontal
+    const descricaoQuebrada = doc.splitTextToSize(
+      `Descrição: ${descricao}`,
+      pageWidth * 0.85 // largura máxima usada no centro
+    );
+
+    descricaoQuebrada.forEach((linha) => {
+      doc.text(linha, pageWidth / 2, y, { align: "center" });
+      y += 5; // espaçamento entre linhas
+    });
+
+    y += 3; // margem após a descrição
+
+    // 🔹 IMAGEM
     if (canvas && canvas.width > 0) {
       const imgData = canvas.toDataURL("image/jpeg", 0.85);
 
-      // Detecta orientação da imagem
       const isVertical = canvas.height > canvas.width;
       let maxW, maxH;
 
       if (isVertical) {
-        maxW = 80;  // largura menor para vertical
-        maxH = 120; // altura maior para vertical
+        maxW = 80;
+        maxH = 120;
       } else {
-        maxW = 120; // largura maior para horizontal
-        maxH = 80;  // altura menor para horizontal
+        maxW = 120;
+        maxH = 80;
       }
 
       const ratio = canvas.width / canvas.height;
@@ -641,7 +650,6 @@ function gerarPDF() {
         w = h * ratio;
       }
 
-      // Centraliza horizontalmente
       const imgX = (pageWidth - w) / 2;
 
       if (y + h > 280) {
@@ -659,7 +667,7 @@ function gerarPDF() {
     }
   });
 
-  // Rodapé centralizado
+  // Rodapé
   doc.setFontSize(10);
   const rodape = `Relatório gerado em: ${new Date().toLocaleString()}`;
   doc.text(rodape, pageWidth / 2, 290, { align: "center" });
@@ -669,6 +677,7 @@ function gerarPDF() {
 
   alert("✅ PDF gerado com sucesso!");
 }
+
 
 
 function iniciarRonda() {
